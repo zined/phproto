@@ -1,0 +1,5 @@
+#ifndef PHPROTO_H
+#define PHPROTO_H
+
+#include "google/protobuf-c/protobuf-c.h"
+

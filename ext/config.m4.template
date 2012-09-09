@@ -47,7 +47,7 @@ if test "$PHP_PHPROTO" != "no"; then
 
   PHP_SUBST(PHPROTO_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(phproto, phproto.c converter.c proto/test.pb-c.c, $ext_shared)
+  PHP_NEW_EXTENSION(phproto, phproto.c converter.c {PROTOFILES}, $ext_shared)
 
   PHP_ADD_LIBRARY(protobuf-c, 1, PHPROTO_SHARED_LIBADD)
 fi
