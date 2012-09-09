@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("phproto", "for phproto support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("phproto", "enable phproto support", "no");
+
+if (PHP_PHPROTO != "no") {
+	EXTENSION("phproto", "phproto.c");
+}
+
