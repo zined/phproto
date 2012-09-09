@@ -1,9 +1,20 @@
 phproto
 =======
 
-# isn't there already ...?
+## isn't there already ...?
 
-# why?
+## why?
 
-# how?
+## how?
+
+### build
+
+    $ phpize
+    $ ./configure --enable-phproto
+    $ make
+
+### clean
+
+    $ make clean
+    $ phpize --clean
 
