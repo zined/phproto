@@ -172,20 +172,20 @@ PHP_FUNCTION(phproto_pack)
 	
 	void* buffer;
 	unsigned len, i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
-	ProtobufCMessageDescriptor* desc = NULL;
+	ProtobufCMessageDescriptor* descriptor = NULL;
 
 	for (i=0;i<total;++i) {
-		desc = phproto_messages[i];
-		if (desc->magic != magic) desc = NULL;
+		descriptor = phproto_messages[i];
+		if (descriptor->magic != magic) descriptor = NULL;
 		else break;
 	}
 
-	if (desc == NULL) {
+	if (descriptor == NULL) {
 		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find message '%d'", magic);
 		return;
 	}
 
-	ProtobufCMessage message = { desc, 0, NULL };
+	ProtobufCMessage message = { descriptor, 0, NULL };
 
 	if (php_message(&message, arr) != 0) RETURN_FALSE;
 
@@ -194,7 +194,7 @@ PHP_FUNCTION(phproto_pack)
 	protobuf_c_message_pack((const ProtobufCMessage*)&message, buffer);
 
 	php_printf("message with magic '%d' and short_name '%s' will be '%d' bytes packed.\n",
-		magic, desc->short_name, len);
+		magic, descriptor->short_name, len);
 
 	RETVAL_STRINGL(buffer, len, 1);
 	efree(buffer);
@@ -205,9 +205,35 @@ PHP_FUNCTION(phproto_pack)
 */
 PHP_FUNCTION(phproto_unpack)
 {
+	uint8_t* buffer;
+	unsigned buffer_len, magic;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls", &magic, &buffer, &buffer_len) == FAILURE) return;
+
+	int i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
+	ProtobufCMessageDescriptor* descriptor = NULL;
+
+	for (i=0;i<total;++i) {
+		descriptor = phproto_messages[i];
+		if (descriptor->magic != magic) descriptor = NULL;
+		else break;
+	}
+
+	if (descriptor == NULL) {
+		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find message '%d'", magic);
+		return;
+	}
+
+	ProtobufCMessage* message;
+
+	if ((message = protobuf_c_message_unpack(descriptor, NULL, buffer_len, buffer)) == NULL) {
+		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot unpack message '%d'", magic);
+		return;
+	}
+
+	array_init(return_value);
+	message_php(return_value, message);
 }
 /* }}}*/
-
 
 /*
  * Local variables:
