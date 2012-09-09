@@ -37,7 +37,9 @@ static int le_phproto;
  * Every user visible function must have an entry in phproto_functions[].
  */
 const zend_function_entry phproto_functions[] = {
-	PHP_FE(confirm_phproto_compiled,	NULL)		/* For testing, remove later. */
+	PHP_FE(phproto_info, NULL)
+	PHP_FE(phproto_pack, NULL)
+	PHP_FE(phproto_unpack, NULL)
 	PHP_FE_END	/* Must be the last line in phproto_functions[] */
 };
 /* }}} */
