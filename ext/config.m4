@@ -1,21 +1,7 @@
-dnl $Id$
 dnl config.m4 for extension phproto
 
-dnl Comments in this file start with the string 'dnl'.
-dnl Remove where necessary. This file will not work
-dnl without editing.
-
-dnl If your extension references something external, use with:
-
-dnl PHP_ARG_WITH(phproto, for phproto support,
-dnl Make sure that the comment is aligned:
-dnl [  --with-phproto             Include phproto support])
-
-dnl Otherwise use enable:
-
-dnl PHP_ARG_ENABLE(phproto, whether to enable phproto support,
-dnl Make sure that the comment is aligned:
-dnl [  --enable-phproto           Enable phproto support])
+PHP_ARG_ENABLE(phproto, whether to enable phproto support,
+[  --enable-phproto              Enable phproto support])
 
 if test "$PHP_PHPROTO" != "no"; then
   dnl Write more examples of tests here...
@@ -59,5 +45,9 @@ if test "$PHP_PHPROTO" != "no"; then
   dnl
   dnl PHP_SUBST(PHPROTO_SHARED_LIBADD)
 
+  PHP_SUBST(PHPROTO_SHARED_LIBADD)
+
   PHP_NEW_EXTENSION(phproto, phproto.c, $ext_shared)
+
+  PHP_ADD_LIBRARY(protobuf-c, 1, PHPROTO_SHARED_LIBADD)
 fi
