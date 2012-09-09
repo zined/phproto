@@ -12,11 +12,9 @@
   | obtain it through the world-wide-web, please send a note to          |
   | license@php.net so we can mail you a copy immediately.               |
   +----------------------------------------------------------------------+
-  | Author:                                                              |
+  | Author: zined@adrianer.de                                            |
   +----------------------------------------------------------------------+
 */
-
-/* $Id$ */
 
 #ifndef PHP_PHPROTO_H
 #define PHP_PHPROTO_H
@@ -42,7 +40,9 @@ PHP_RINIT_FUNCTION(phproto);
 PHP_RSHUTDOWN_FUNCTION(phproto);
 PHP_MINFO_FUNCTION(phproto);
 
-PHP_FUNCTION(confirm_phproto_compiled);	/* For testing, remove later. */
+PHP_FUNCTION(phproto_info);
+PHP_FUNCTION(phproto_pack);
+PHP_FUNCTION(phproto_unpack);
 
 /* 
   	Declare any global variables you may need between the BEGIN
