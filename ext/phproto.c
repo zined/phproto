@@ -147,7 +147,15 @@ PHP_MINFO_FUNCTION(phproto)
 */
 PHP_FUNCTION(phproto_info)
 {
-	php_printf("phproto_info();\n");
+	ProtobufCMessageDescriptor* current = NULL;
+	unsigned i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
+	
+	array_init(return_value);
+	for (i=0;i<total;++i) {
+		current = phproto_messages[i];
+		add_index_string(return_value, current->magic, current->short_name, 1);
+//		add_assoc_long(return_value, current->short_name, current->magic);
+	}
 }
 /* }}}*/
 

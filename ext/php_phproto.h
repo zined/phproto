@@ -19,6 +19,8 @@
 #ifndef PHP_PHPROTO_H
 #define PHP_PHPROTO_H
 
+#include "phproto.h"
+
 extern zend_module_entry phproto_module_entry;
 #define phpext_phproto_ptr &phproto_module_entry
 
