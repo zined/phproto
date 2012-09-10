@@ -31,9 +31,7 @@ php_message (const ProtobufCMessage* message, zval* val)
 {
     HashPosition pos;
     HashTable* hash_table = Z_ARRVAL_P(val);
-
     zval** data;
-
     char* key;
     int i, j, key_len;
     long index;
@@ -121,13 +119,10 @@ void message_php (zval* return_value, const ProtobufCMessage *message)
     unsigned int i, j;
     for (i=0;i<message->descriptor->n_fields;i++) {
         const ProtobufCFieldDescriptor *field = message->descriptor->fields + i;
-
         const void* member = get_member(message, field);
         unsigned int* num_fields = get_quantifier(message, field);
-
         const ProtobufCMessage** sub_messages;
         const ProtobufCMessage* sub_message;
-
         zval *inner, *inner_repeated;
 
         switch (field->type) {
