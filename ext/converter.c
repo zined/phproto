@@ -41,20 +41,31 @@ php_message (const ProtobufCMessage* message, zval* val)
     // check if all required fields are existent in the given php array
     for (j=0 ; j < message->descriptor->n_fields ; ++j) {
         const ProtobufCFieldDescriptor* tmp_field = message->descriptor->fields + j;
-        if (tmp_field->label != PROTOBUF_C_LABEL_REQUIRED) continue;
-        if (! zend_symtable_exists(hash_table, (char*)tmp_field->name, strlen((char*)(tmp_field->name)) + 1)) {
 
-            zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find required field '%s'", tmp_field->name);
-            return 1;
+        if (! zend_symtable_exists(hash_table, (char*)tmp_field->name, strlen((char*)(tmp_field->name)) + 1)) {
+            if (tmp_field->label == PROTOBUF_C_LABEL_REQUIRED) {
+                zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find required field '%s'", tmp_field->name);
+                return 1;
+            } else {
+                if (tmp_field->type == PROTOBUF_C_TYPE_STRING) {
+                    const char* value = NULL;
+                    const void* member = get_member(message, tmp_field);
+                    memcpy((void*)member, (void*)&value, sizeof(void*));
+                } else {
+                    unsigned int* quantifier = get_quantifier(message, tmp_field);
+                    *quantifier = 0;
+                }
+            }
         }
     }
-
+        
     // iterate php array
     zend_hash_internal_pointer_reset_ex(hash_table, &pos);
     for (;; zend_hash_move_forward_ex(hash_table, &pos)) {
         zend_hash_get_current_data_ex(hash_table, (void**)&data, &pos);
 
         i = zend_hash_get_current_key_ex(hash_table, &key, &key_len, &index, 0, &pos);
+        
 
         if (i == HASH_KEY_NON_EXISTANT) {
             break;
