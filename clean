@@ -1,0 +1,8 @@
+#!/bin/sh
+
+cd ext
+make clean 
+phpize --clean
+rm -v phproto.h
+rm -v config.m4
+cd -
