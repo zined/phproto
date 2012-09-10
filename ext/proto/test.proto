@@ -1,4 +1,5 @@
 message TestRequest {
-    optional int32 foo = 1;
-    optional int32 bar = 2;
+    optional string foo = 1;
+    optional int32 a = 2;
+    optional uint32 b = 3;
 }
