@@ -42,7 +42,7 @@ PHP_RINIT_FUNCTION(phproto);
 PHP_RSHUTDOWN_FUNCTION(phproto);
 PHP_MINFO_FUNCTION(phproto);
 
-PHP_FUNCTION(phproto_info);
+PHP_FUNCTION(phproto_messages);
 PHP_FUNCTION(phproto_pack);
 PHP_FUNCTION(phproto_unpack);
 

@@ -40,7 +40,7 @@ static int le_phproto;
  * Every user visible function must have an entry in phproto_functions[].
  */
 const zend_function_entry phproto_functions[] = {
-	PHP_FE(phproto_info, NULL)
+	PHP_FE(phproto_messages, NULL)
 	PHP_FE(phproto_pack, NULL)
 	PHP_FE(phproto_unpack, NULL)
 	PHP_FE_END	/* Must be the last line in phproto_functions[] */
@@ -149,20 +149,78 @@ PHP_MINFO_FUNCTION(phproto)
 }
 /* }}} */
 
-/* {{{ phproto_info
+/* {{{ phproto_messages
 */
-PHP_FUNCTION(phproto_info)
+PHP_FUNCTION(phproto_messages)
 {
-	const ProtobufCMessageDescriptor* current = NULL;
+	const ProtobufCMessageDescriptor* descriptor = NULL;
 	unsigned i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
-	
 	array_init(return_value);
+
 	for (i=0;i<total;++i) {
-		current = phproto_messages[i];
-		add_index_string(return_value, current->magic, current->short_name, 1);
+		descriptor = phproto_messages[i];
+
+		unsigned j;	
+		zval *info, *fields;
+		MAKE_STD_ZVAL(info); MAKE_STD_ZVAL(fields);
+		array_init(info); array_init(fields);
+
+		add_assoc_long(info, "magic", descriptor->magic);
+		add_assoc_long(info, "n_fields", descriptor->n_fields);
+
+		for (j=0;j<descriptor->n_fields;++j) {
+			const ProtobufCFieldDescriptor* field = descriptor->fields + j;
+
+			zval* fieldinfo;
+			MAKE_STD_ZVAL(fieldinfo);
+			array_init(fieldinfo);
+
+			add_assoc_string(fieldinfo, "name", (char*)field->name, 1);
+			add_assoc_long(fieldinfo, "id", field->id);
+			switch (field->label) {
+				case PROTOBUF_C_LABEL_REQUIRED:
+					add_assoc_string(fieldinfo, "label", "REQUIRED", 1);
+					break;
+				case PROTOBUF_C_LABEL_OPTIONAL:
+					add_assoc_string(fieldinfo, "label", "OPTIONAL", 1);
+					break;
+				case PROTOBUF_C_LABEL_REPEATED:
+					add_assoc_string(fieldinfo, "label", "REPEATED", 1);
+					break;
+				default: break;
+			}
+			switch(field->type) {
+				case PROTOBUF_C_TYPE_INT32:
+					add_assoc_string(fieldinfo, "type", "INT32", 1);
+					break;
+				case PROTOBUF_C_TYPE_UINT32:
+					add_assoc_string(fieldinfo, "type", "UINT32", 1);
+					break;
+				case PROTOBUF_C_TYPE_STRING:
+					add_assoc_string(fieldinfo, "type", "STRING", 1);
+					break;
+				case PROTOBUF_C_TYPE_BOOL:
+					add_assoc_string(fieldinfo, "type", "BOOL", 1);
+					break;
+				case PROTOBUF_C_TYPE_MESSAGE:
+					add_assoc_string(fieldinfo, "type", "MESSAGE", 1);
+					break;
+				default:
+					add_assoc_string(fieldinfo, "type", "[not implemented]", 1);
+					break;
+			}
+
+			add_index_zval(fields, field->id, fieldinfo);
+		}
+
+		add_assoc_zval(info, "fields", fields);
+		add_assoc_zval(return_value, (char*)descriptor->name, info);
 	}
+
+
 }
-/* }}}*/
+
+/* }}} */
 
 /* {{{ phproto_pack
 */
