@@ -13,11 +13,11 @@ void uint32_php_repeated (zval*, char*, const uint32_t**, unsigned int);
 void string_php_single (zval*, char*, char* const*);
 void string_php_repeated (zval*, char*, char** const*, unsigned int);
 
-void string_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
-void int32_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
-void uint32_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
-void message_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
-void bool_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
+int string_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
+int int32_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
+int uint32_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
+int message_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
+int bool_proto (const ProtobufCMessage*, const ProtobufCFieldDescriptor*, zval**);
 
 // TODO
 void bool_php (zval*, const char*, protobuf_c_boolean);

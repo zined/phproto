@@ -1,9 +1,8 @@
 message TestRequest {
-    optional string a = 1;
-    optional int32 b = 2;
-    optional uint32 c = 3;
+    optional string foo = 1;
+    optional int32 bar = 2;
+    optional uint32 baz = 3;
 
-    repeated int32 foo = 4;
-    repeated uint32 bar = 5;
-    repeated string baz = 6;
+    repeated string wurst = 4;
+    repeated int32 koffer = 5;
 }

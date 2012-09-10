@@ -50,13 +50,15 @@ php_message (const ProtobufCMessage* message, zval* val)
                     const void* member = get_member(message, tmp_field);
                     memcpy((void*)member, (void*)&value, sizeof(void*));
                 } else {
+/*
                     unsigned int* quantifier = get_quantifier(message, tmp_field);
                     *quantifier = 0;
+*/
                 }
             }
         }
     }
-        
+
     // iterate php array
     zend_hash_internal_pointer_reset_ex(hash_table, &pos);
     for (;; zend_hash_move_forward_ex(hash_table, &pos)) {
@@ -85,21 +87,37 @@ php_message (const ProtobufCMessage* message, zval* val)
 
             // string
             if (field->type == PROTOBUF_C_TYPE_STRING) {
-                string_proto(message, field, data);
+                if (string_proto(message, field, data) != 0) {
+                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
+                        "unable to pack string field '%s'", field->name);
+                    return 1;
+                }
             }
 
             // long => int32
             else if (field->type == PROTOBUF_C_TYPE_INT32) {
-                int32_proto(message, field, data);
+                if (int32_proto(message, field, data) != 0) {
+                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
+                        "unable to pack int32 field '%s'", field->name);
+                    return 1;
+                }
             }
 
             // uint32
             else if (field->type == PROTOBUF_C_TYPE_UINT32) {
-                uint32_proto(message, field, data);
+                if (uint32_proto(message, field, data) != 0) {
+                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
+                        "unable to pack uint32 field '%s'", field->name);
+                    return 1;
+                }
             }
 
             else if (field->type == PROTOBUF_C_TYPE_MESSAGE) {
-                message_proto(message, field, data);
+                if (message_proto(message, field, data) != 0) {
+                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
+                        "unable to pack message field '%s'", field->name);
+                    return 1;
+                }
             }
 
             // not implemented
@@ -305,7 +323,7 @@ uint32_php_repeated (zval* out, char* name, const uint32_t** val, unsigned int n
 
 /* Extract string values from the given zval**, and write them into the given protobuf
    message pointer. handle optional/required/repeated strings */
-void
+int
 string_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field, zval** val)
 {
     const void* member = get_member(message, field);
@@ -313,6 +331,8 @@ string_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* f
 
     if (field->label == PROTOBUF_C_LABEL_REQUIRED || field->label == PROTOBUF_C_LABEL_OPTIONAL)
     {
+        if (Z_TYPE_PP(val) != IS_STRING)
+            return 1;
         char* value = Z_STRVAL_PP(val);
         memcpy((void*)member, (void*)&value, sizeof(void*));
     }
@@ -320,7 +340,7 @@ string_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* f
     else if (field->label == PROTOBUF_C_LABEL_REPEATED)
     {
         if (Z_TYPE_PP(val) != IS_ARRAY)
-            return; // XXX error handling XXX
+            return 1;
 
         HashPosition pos;
         HashTable* hash_table = Z_ARRVAL_PP(val);
@@ -348,15 +368,17 @@ string_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* f
         *quantifier = (int32_t)num_elements;
         memcpy((void*)member, (void*)&values, sizeof(void*));
     }
+
+    return 0;
 }
 
 /* Extract a single optional/required or multiple repeated sub messages from native
    php types into the given protobuf message. Allocates memory for the created messages */
-void
+int
 message_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field, zval** val)
 {
     if (Z_TYPE_PP(val) != IS_ARRAY)
-        return; // XXX error handling XXX
+        return 1;
 
     const void* member = get_member(message, field);
     unsigned int* quantifier = get_quantifier(message, field);
@@ -403,11 +425,13 @@ message_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* 
         memcpy((void*)member, (void*)&values, sizeof(void*));
         memcpy((void*)quantifier, (void*)num_elements, sizeof(void*));
     }
+
+    return 0;
 }
 
 /* Extract int32_t values from the given zval** and write them into the given protobuf
    message pointer. handle optional/required/repeated */
-void
+int
 int32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field, zval** val)
 {
     int32_t* member = (int32_t*)get_member(message, field);
@@ -419,7 +443,7 @@ int32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fi
         else if (Z_TYPE_PP(val) == IS_DOUBLE)
             *member = (int32_t)Z_DVAL_PP(val);
         else
-            return; // XXX error handling XXX
+            return 1;
 
         if (field->label == PROTOBUF_C_LABEL_OPTIONAL)
             *quantifier = 1;
@@ -428,7 +452,7 @@ int32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fi
     else if (field->label == PROTOBUF_C_LABEL_REPEATED)
     {
         if (Z_TYPE_PP(val) != IS_ARRAY)
-            return; // XXX error handling XXX
+            return 1;
 
         HashPosition pos;
         HashTable* hash_table = Z_ARRVAL_PP(val);        
@@ -456,11 +480,13 @@ int32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fi
         *quantifier = num_elements;
         memcpy((void*)member, (void*)&values, sizeof(void*));
     }
+
+    return 0;
 }
 
 /* Extract uint32_t values from the given zval** and write them into the given protobuf
    message pointer. handle optional/required/repeated */
-void
+int
 uint32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field, zval** val)
 {
     uint32_t* member = (uint32_t*)get_member(message, field);
@@ -472,6 +498,8 @@ uint32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* f
             *member = (uint32_t)Z_LVAL_PP(val);
         else if (Z_TYPE_PP(val) == IS_DOUBLE)
             *member = (uint32_t)Z_DVAL_PP(val);
+        else
+            return 1;
 
         if (field->label == PROTOBUF_C_LABEL_OPTIONAL)
             *quantifier = 1;
@@ -480,7 +508,7 @@ uint32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* f
     else if (field->label == PROTOBUF_C_LABEL_REPEATED)
     {
         if (Z_TYPE_PP(val) != IS_ARRAY)
-            return; // XXX error handling XXX
+            return 1;
 
         HashPosition pos;
         HashTable* hash_table = Z_ARRVAL_PP(val);        
@@ -508,11 +536,13 @@ uint32_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* f
         *quantifier = num_elements;
         memcpy((void*)member, (void*)&values, sizeof(void*));
     }
+
+    return 0;
 }
 
 /* Extract boolean values from the given zval** and write them into the given protobuf
    message pointer. handle optional/required/repeated */
-void
+int
 bool_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field, zval** val)
 {
     protobuf_c_boolean* member = (protobuf_c_boolean*)get_member(message, field);
@@ -523,7 +553,7 @@ bool_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fie
         if (Z_TYPE_PP(val) == IS_BOOL)
             *member = (protobuf_c_boolean)Z_LVAL_PP(val);
         else
-            return; // XXX error handling XXX
+            return 1;
     
         if (field->label == PROTOBUF_C_LABEL_OPTIONAL)
             *quantifier = 1;
@@ -532,7 +562,7 @@ bool_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fie
     else if (field->label == PROTOBUF_C_LABEL_REPEATED)
     {
         if (Z_TYPE_PP(val) != IS_ARRAY)
-            return; // XXX error handling XXX
+            return 1;
 
         HashPosition pos;
         HashTable* hash_table = Z_ARRVAL_PP(val);
@@ -558,6 +588,8 @@ bool_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fie
         *quantifier = num_elements;
         memcpy((void*)member, (void*)&values, sizeof(void*));
     }
+
+    return 0;
 }
 
 /******************************************************************************/

@@ -227,8 +227,9 @@ PHP_FUNCTION(phproto_messages)
 PHP_FUNCTION(phproto_pack)
 {
 	zval* arr;
-	unsigned magic;
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "la", &magic, &arr) == FAILURE) {
+	char* message_name;
+	unsigned message_name_len;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sa", &message_name, &message_name_len, &arr) == FAILURE) {
 		return;
 	}
 	
@@ -238,12 +239,12 @@ PHP_FUNCTION(phproto_pack)
 
 	for (i=0;i<total;++i) {
 		descriptor = phproto_messages[i];
-		if (descriptor->magic != magic) descriptor = NULL;
+		if (strcmp(descriptor->name, message_name) != 0) descriptor = NULL;
 		else break;
 	}
 
 	if (descriptor == NULL) {
-		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find message '%d'", magic);
+		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "message not found: '%s'", message_name);
 		return;
 	}
 
@@ -260,9 +261,6 @@ PHP_FUNCTION(phproto_pack)
 	buffer = emalloc(len);
 	protobuf_c_message_pack((const ProtobufCMessage*)message, buffer);
 
-	php_printf("message with magic '%d' and short_name '%s' will be '%d' bytes packed.\n",
-		magic, descriptor->short_name, len);
-
 	RETVAL_STRINGL(buffer, len, 1);
 	efree(buffer);
 	efree(message);
@@ -274,27 +272,29 @@ PHP_FUNCTION(phproto_pack)
 PHP_FUNCTION(phproto_unpack)
 {
 	uint8_t* buffer;
-	unsigned buffer_len, magic;
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls", &magic, &buffer, &buffer_len) == FAILURE) return;
+	unsigned buffer_len, message_name_len;
+	char* message_name;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ss",
+		&message_name, &message_name_len, &buffer, &buffer_len) == FAILURE) return;
 
 	int i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
 	const ProtobufCMessageDescriptor* descriptor = NULL;
 
 	for (i=0;i<total;++i) {
 		descriptor = phproto_messages[i];
-		if (descriptor->magic != magic) descriptor = NULL;
+		if (strcmp(descriptor->name, message_name) != 0) descriptor = NULL;
 		else break;
 	}
 
 	if (descriptor == NULL) {
-		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find message '%d'", magic);
+		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "message not found: '%s'", message_name);
 		return;
 	}
 
 	ProtobufCMessage* message;
 
 	if ((message = protobuf_c_message_unpack(descriptor, NULL, buffer_len, buffer)) == NULL) {
-		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot unpack message '%d'", magic);
+		zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot unpack message '%s'", message_name);
 		return;
 	}
 
