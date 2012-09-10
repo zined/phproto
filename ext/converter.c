@@ -46,9 +46,14 @@ php_message (const ProtobufCMessage* message, zval* val)
                 return 1;
             } else {
                 if (tmp_field->type == PROTOBUF_C_TYPE_STRING) {
-                    const char* value = NULL;
-                    const void* member = get_member(message, tmp_field);
-                    memcpy((void*)member, (void*)&value, sizeof(void*));
+                    const char** member = get_member(message, tmp_field);
+                    *member = NULL;
+
+                    if (tmp_field->label == PROTOBUF_C_LABEL_REPEATED) {
+                        size_t* quantifier = get_quantifier(message, tmp_field);
+                        *quantifier = 0;
+                        
+                    }
                 } else {
 /*
                     unsigned int* quantifier = get_quantifier(message, tmp_field);

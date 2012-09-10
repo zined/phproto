@@ -4,5 +4,6 @@ message TestRequest {
     optional uint32 baz = 3;
 
     repeated string wurst = 4;
-    repeated int32 koffer = 5;
+    repeated string blar = 5;
+    repeated uint32 koffer = 6;
 }
