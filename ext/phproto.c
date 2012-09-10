@@ -26,6 +26,7 @@
 #include "zend_exceptions.h"
 #include "php_phproto.h"
 #include "converter.h"
+#include <syslog.h>
 
 /* If you declare any globals in php_phproto.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(phproto)
@@ -98,6 +99,8 @@ PHP_MINIT_FUNCTION(phproto)
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
+
+	openlog("phproto", LOG_PID, LOG_DAEMON);
 	return SUCCESS;
 }
 /* }}} */
@@ -109,6 +112,7 @@ PHP_MSHUTDOWN_FUNCTION(phproto)
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/
+	closelog();
 	return SUCCESS;
 }
 /* }}} */
@@ -149,7 +153,7 @@ PHP_MINFO_FUNCTION(phproto)
 */
 PHP_FUNCTION(phproto_info)
 {
-	ProtobufCMessageDescriptor* current = NULL;
+	const ProtobufCMessageDescriptor* current = NULL;
 	unsigned i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
 	
 	array_init(return_value);
@@ -172,7 +176,7 @@ PHP_FUNCTION(phproto_pack)
 	
 	void* buffer;
 	unsigned len, i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
-	ProtobufCMessageDescriptor* descriptor = NULL;
+	const ProtobufCMessageDescriptor* descriptor = NULL;
 
 	for (i=0;i<total;++i) {
 		descriptor = phproto_messages[i];
@@ -185,19 +189,25 @@ PHP_FUNCTION(phproto_pack)
 		return;
 	}
 
-	ProtobufCMessage message = { descriptor, 0, NULL };
+	// emalloc
+	ProtobufCMessage* message = emalloc(descriptor->sizeof_message);
 
-	if (php_message(&message, arr) != 0) RETURN_FALSE;
+	message->descriptor = descriptor;
+	message->n_unknown_fields = 0;
+	message->unknown_fields = NULL;
 
-	len = protobuf_c_message_get_packed_size((const ProtobufCMessage*)&message);
+	if (php_message(message, arr) != 0) RETURN_FALSE;
+
+	len = protobuf_c_message_get_packed_size((const ProtobufCMessage*)message);
 	buffer = emalloc(len);
-	protobuf_c_message_pack((const ProtobufCMessage*)&message, buffer);
+	protobuf_c_message_pack((const ProtobufCMessage*)message, buffer);
 
 	php_printf("message with magic '%d' and short_name '%s' will be '%d' bytes packed.\n",
 		magic, descriptor->short_name, len);
 
 	RETVAL_STRINGL(buffer, len, 1);
 	efree(buffer);
+	efree(message);
 }
 /* }}}*/
 
@@ -210,7 +220,7 @@ PHP_FUNCTION(phproto_unpack)
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ls", &magic, &buffer, &buffer_len) == FAILURE) return;
 
 	int i, total = sizeof(phproto_messages)/sizeof(ProtobufCMessageDescriptor*);
-	ProtobufCMessageDescriptor* descriptor = NULL;
+	const ProtobufCMessageDescriptor* descriptor = NULL;
 
 	for (i=0;i<total;++i) {
 		descriptor = phproto_messages[i];
