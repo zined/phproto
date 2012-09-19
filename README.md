@@ -1,6 +1,11 @@
 phproto
 =======
 
+a compiled php protobuf implementation served as a php extension
+
+development status: unstable
+
+
 ## isn't there already ...?
 
 yes, there is. but not compiled. one great aspect of protobuffers is that they're being compiled. se we do that. use protoc-c to compile our protobufs to c, then build the extension on top of that.
