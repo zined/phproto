@@ -8,16 +8,16 @@
 
 /* Return the pointer of the quantifier for a given field in a message, which can be
    used both for the "has_XXX" and "n_XXX" fields. */
-static unsigned int*
+static void*
 get_quantifier (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field) {
-    unsigned int* quantifier = (unsigned int*)(((const char*)message) + field->quantifier_offset);
+    void* quantifier = (((char*)message) + field->quantifier_offset);
     return quantifier;
 }
 
 /* Return the pointer of a field's position inside a message. */
-static const void*
+static void*
 get_member (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field) {
-    const void* member = ((const char*)message) + field->offset;
+    void* member = ((char*)message) + field->offset;
     return member;
 }
 
@@ -40,12 +40,12 @@ find_field (const ProtobufCMessage* message, const char* key)
 }
 
 /* properly NULL an optional field. */
-static const void
+static void
 null_field (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field)
 {
     if (field->label == PROTOBUF_C_LABEL_OPTIONAL) {
-        protobuf_c_boolean* has = get_quntifier(message, field);
-        *has = (protobuf_c_boolean)0;
+        protobuf_c_boolean* has = get_quantifier(message, field);
+        *has = 0;
     } else if (field->label == PROTOBUF_C_LABEL_REPEATED) {
         size_t* quantifier = get_quantifier(message, field);
         *quantifier = 0;
