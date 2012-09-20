@@ -6,4 +6,11 @@ message TestRequest {
     repeated string wurst = 4;
     repeated string blar = 5;
     repeated uint32 koffer = 6;
+
+    message bla {
+        optional int32 id = 1;
+        optional int32 name = 2;
+    }
+
+    repeated bla blub = 7;
 }

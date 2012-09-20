@@ -158,7 +158,7 @@ void message_php (zval* return_value, const ProtobufCMessage *message)
     for (i=0;i<message->descriptor->n_fields;i++) {
         const ProtobufCFieldDescriptor *field = message->descriptor->fields + i;
         const void* member = get_member(message, field);
-        unsigned int* num_fields = get_quantifier(message, field);
+        size_t* num_fields = get_quantifier(message, field);
         const ProtobufCMessage** sub_messages;
         const ProtobufCMessage* sub_message;
         zval *inner, *inner_repeated;
@@ -170,7 +170,7 @@ void message_php (zval* return_value, const ProtobufCMessage *message)
                     int32_php_single(return_value, (char*)field->name, (const int32_t*)member);
                 } else if (field->label == PROTOBUF_C_LABEL_REQUIRED) {
                     int32_php_single(return_value, (char*)field->name, (const int32_t*)member);
-                } else if (field->label == PROTOBUF_C_LABEL_REPEATED && (size_t)*num_fields) {
+                } else if (field->label == PROTOBUF_C_LABEL_REPEATED && *num_fields) {
                     int32_php_repeated(return_value, (char*)field->name, (const int32_t**)member, *num_fields);
                 }
             break;
@@ -180,7 +180,7 @@ void message_php (zval* return_value, const ProtobufCMessage *message)
                     uint32_php_single(return_value, (char*)field->name, (const uint32_t*)member);
                 } else if (field->label == PROTOBUF_C_LABEL_REQUIRED) {
                     uint32_php_single(return_value, (char*)field->name, (const uint32_t*)member);
-                } else if (field->label == PROTOBUF_C_LABEL_REPEATED && (size_t)*num_fields) {
+                } else if (field->label == PROTOBUF_C_LABEL_REPEATED && *num_fields) {
                     uint32_php_repeated(return_value, (char*)field->name, (const uint32_t**)member, *num_fields);
                 }
             break;
@@ -193,7 +193,7 @@ void message_php (zval* return_value, const ProtobufCMessage *message)
                     }
                 } else if (field->label == PROTOBUF_C_LABEL_REQUIRED) {
                     string_php_single(return_value, (char*)field->name, (char* const*)member);
-                } else if (field->label == PROTOBUF_C_LABEL_REPEATED && (size_t)*num_fields) {
+                } else if (field->label == PROTOBUF_C_LABEL_REPEATED && *num_fields) {
                     string_php_repeated(return_value, (char*)field->name, (char** const*)member, *num_fields);
                 }
             break;
