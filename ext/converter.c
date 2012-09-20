@@ -21,6 +21,77 @@ get_member (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* fie
     return member;
 }
 
+/* Return a message's field matching a given key */
+static const ProtobufCFieldDescriptor*
+find_field (const ProtobufCMessage* message, const char* key)
+{
+    unsigned i;
+    const ProtobufCFieldDescriptor* field = NULL;
+    
+    for (i=0;i<message->descriptor->n_fields;++i) {
+        const ProtobufCFieldDescriptor* tmp_field = message->descriptor->fields + i;
+        if (! strcmp(key, tmp_field->name)) {
+            field = tmp_field;
+            break;
+        }
+    }
+
+    return field;
+}
+
+/* properly NULL an optional field. */
+static const void
+null_field (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field)
+{
+    if (field->label == PROTOBUF_C_LABEL_OPTIONAL) {
+        protobuf_c_boolean* has = get_quntifier(message, field);
+        *has = (protobuf_c_boolean)0;
+    } else if (field->label == PROTOBUF_C_LABEL_REPEATED) {
+        size_t* quantifier = get_quantifier(message, field);
+        *quantifier = 0;
+    }
+
+    if (field->type == PROTOBUF_C_TYPE_STRING) {
+        const char** member = get_member(message, field);
+        *member = NULL;
+    }
+}
+
+/* write php zvals into corresponding proto fields */
+static unsigned
+write_field (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field,
+                zval** data)
+{
+    unsigned res;
+
+    switch (field->type) {
+        case PROTOBUF_C_TYPE_STRING:
+            res = string_proto(message, field, data);
+        break;
+
+        case PROTOBUF_C_TYPE_INT32:
+            res = int32_proto(message, field, data);
+        break;
+
+        case PROTOBUF_C_TYPE_UINT32:
+            res = uint32_proto(message, field, data);
+
+        break;
+
+        case PROTOBUF_C_TYPE_MESSAGE:
+            res = message_proto(message, field, data);
+        break;
+
+        default:
+            // XXX type not implemented yet
+            // TODO exception
+            return 1;
+        break;
+    }
+
+    return res;
+}
+
 /******************************************************************************/
 /* external interface methods */
 
@@ -36,98 +107,42 @@ php_message (const ProtobufCMessage* message, zval* val)
     int i, j, key_len;
     long index;
 
-    // check if all required fields are existent in the given php array
+    // check if all required fields are existent in the given php array.
+    // NULL default values if not
     for (j=0 ; j < message->descriptor->n_fields ; ++j) {
         const ProtobufCFieldDescriptor* tmp_field = message->descriptor->fields + j;
 
-        if (! zend_symtable_exists(hash_table, (char*)tmp_field->name, strlen((char*)(tmp_field->name)) + 1)) {
+        if (! zend_symtable_exists(hash_table, (char*)tmp_field->name,
+                strlen((char*)(tmp_field->name)) + 1)) {
             if (tmp_field->label == PROTOBUF_C_LABEL_REQUIRED) {
-                zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC, "cannot find required field '%s'", tmp_field->name);
+                zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
+                    "cannot find required field '%s'", tmp_field->name);
                 return 1;
             } else {
-                if (tmp_field->type == PROTOBUF_C_TYPE_STRING) {
-                    const char** member = get_member(message, tmp_field);
-                    *member = NULL;
-
-                    if (tmp_field->label == PROTOBUF_C_LABEL_REPEATED) {
-                        size_t* quantifier = get_quantifier(message, tmp_field);
-                        *quantifier = 0;
-                        
-                    }
-                } else {
-/*
-                    unsigned int* quantifier = get_quantifier(message, tmp_field);
-                    *quantifier = 0;
-*/
-                }
+                null_field(message, tmp_field);
             }
         }
     }
 
-    // iterate php array
+    // copy php values to proto
     zend_hash_internal_pointer_reset_ex(hash_table, &pos);
     for (;; zend_hash_move_forward_ex(hash_table, &pos)) {
         zend_hash_get_current_data_ex(hash_table, (void**)&data, &pos);
 
         i = zend_hash_get_current_key_ex(hash_table, &key, &key_len, &index, 0, &pos);
         
-
         if (i == HASH_KEY_NON_EXISTANT) {
             break;
         } else if (i == HASH_KEY_IS_STRING) {
 
-            // find corresponding protobuf field for array key
-            const ProtobufCFieldDescriptor* field = NULL;
-            for (j=0 ; j < message->descriptor->n_fields ; ++j) {
-                const ProtobufCFieldDescriptor* tmp_field = message->descriptor->fields + j;
-                if (! strcmp(key, tmp_field->name)) {
-                    field = tmp_field;
-                    break;
-                }
-            }
-
-            if (field == NULL) {
+            const ProtobufCFieldDescriptor* field = find_field(message, key);
+            if (field == NULL)
                 continue;
-            }
 
-            // string
-            if (field->type == PROTOBUF_C_TYPE_STRING) {
-                if (string_proto(message, field, data) != 0) {
-                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
-                        "unable to pack string field '%s'", field->name);
-                    return 1;
-                }
-            }
-
-            // long => int32
-            else if (field->type == PROTOBUF_C_TYPE_INT32) {
-                if (int32_proto(message, field, data) != 0) {
-                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
-                        "unable to pack int32 field '%s'", field->name);
-                    return 1;
-                }
-            }
-
-            // uint32
-            else if (field->type == PROTOBUF_C_TYPE_UINT32) {
-                if (uint32_proto(message, field, data) != 0) {
-                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
-                        "unable to pack uint32 field '%s'", field->name);
-                    return 1;
-                }
-            }
-
-            else if (field->type == PROTOBUF_C_TYPE_MESSAGE) {
-                if (message_proto(message, field, data) != 0) {
-                    zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
-                        "unable to pack message field '%s'", field->name);
-                    return 1;
-                }
-            }
-
-            // not implemented
-            else {
-                php_printf("type not implemented yet.\n");
+            if (write_field(message, field, data) != 0) {
+                zend_throw_exception_ex(zend_exception_get_default(TSRMLS_C), 0 TSRMLS_CC,
+                    "unable to pack field '%s'", field->name);
+                return 1;
             }
         }
     }
@@ -329,7 +344,8 @@ uint32_php_repeated (zval* out, char* name, const uint32_t** val, unsigned int n
 /* Extract string values from the given zval**, and write them into the given protobuf
    message pointer. handle optional/required/repeated strings */
 int
-string_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field, zval** val)
+string_proto (const ProtobufCMessage* message, const ProtobufCFieldDescriptor* field,
+    zval** val)
 {
     const void* member = get_member(message, field);
     unsigned int* quantifier = get_quantifier(message, field);

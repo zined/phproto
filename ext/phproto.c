@@ -99,8 +99,6 @@ PHP_MINIT_FUNCTION(phproto)
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
-
-	openlog("phproto", LOG_PID, LOG_DAEMON);
 	return SUCCESS;
 }
 /* }}} */
@@ -112,7 +110,6 @@ PHP_MSHUTDOWN_FUNCTION(phproto)
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/
-	closelog();
 	return SUCCESS;
 }
 /* }}} */
@@ -162,8 +159,10 @@ PHP_FUNCTION(phproto_messages)
 
 		unsigned j;	
 		zval *info, *fields;
-		MAKE_STD_ZVAL(info); MAKE_STD_ZVAL(fields);
-		array_init(info); array_init(fields);
+		MAKE_STD_ZVAL(info);
+		MAKE_STD_ZVAL(fields);
+		array_init(info);
+		array_init(fields);
 
 		add_assoc_long(info, "magic", descriptor->magic);
 		add_assoc_long(info, "n_fields", descriptor->n_fields);
@@ -177,6 +176,7 @@ PHP_FUNCTION(phproto_messages)
 
 			add_assoc_string(fieldinfo, "name", (char*)field->name, 1);
 			add_assoc_long(fieldinfo, "id", field->id);
+
 			switch (field->label) {
 				case PROTOBUF_C_LABEL_REQUIRED:
 					add_assoc_string(fieldinfo, "label", "REQUIRED", 1);
@@ -189,6 +189,7 @@ PHP_FUNCTION(phproto_messages)
 					break;
 				default: break;
 			}
+
 			switch(field->type) {
 				case PROTOBUF_C_TYPE_INT32:
 					add_assoc_string(fieldinfo, "type", "INT32", 1);
@@ -216,8 +217,6 @@ PHP_FUNCTION(phproto_messages)
 		add_assoc_zval(info, "fields", fields);
 		add_assoc_zval(return_value, (char*)descriptor->name, info);
 	}
-
-
 }
 
 /* }}} */

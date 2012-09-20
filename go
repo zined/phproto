@@ -1,5 +1,9 @@
 #!/bin/sh
 
+#
+# XXX move to make/cmake/whatever
+#
+
 BASE_PATH="./ext"
 LOG="$( pwd )/$( mktemp --tmpdir=. build.log.XXX )"
 PROTO_PATH="${BASE_PATH}/proto"
@@ -13,6 +17,7 @@ EGREP=$( which egrep )
 SED=$( which sed )
 PHPIZE=$( which phpize )
 MAKE=$( which make )
+INSTALL=$( which install )
 
 #
 # print a relative list of files in $PROTO_PATH, matching a pattern
@@ -150,7 +155,7 @@ build()
 deploy()
 {
     echo -n "deploying.. "
-    if ! install -o$HTTPD_USER -g$HTTPD_GROUP -m0644 $BASE_PATH/modules/phproto.so \
+    if ! $INSTALL -o$HTTPD_USER -g$HTTPD_GROUP -m0644 $BASE_PATH/modules/phproto.so \
         $PHP_MODULE_DIR/. >> $LOG 2>&1; then
     
         echo "FAILED"

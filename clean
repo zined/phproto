@@ -6,3 +6,4 @@ phpize --clean
 rm -v phproto.h
 rm -v config.m4
 cd -
+rm build.log.*
